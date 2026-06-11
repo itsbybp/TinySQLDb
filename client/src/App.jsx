@@ -9,115 +9,59 @@ INSERT INTO Estudiante VALUES(1, "Juan");
 SELECT * FROM Estudiante;`
 
 export default function App() {
-  const [query, setQuery]     = useState('')
-  const [results, setResults] = useState([])
+  const [script, setScript] = useState(PLACEHOLDER)
+  const [output, setOutput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState(null)
 
-  async function runQuery() {
-    if (!query.trim()) return
+  async function runScript() {
     setLoading(true)
-    setError(null)
-    setResults([])
+    setOutput('')
+    try {
+      const res = await fetch('http://localhost:5000/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sql: script })
+      })
 
-    const statements = query
-      .split(';')
-      .map(s => s.trim())
-      .filter(s => s.length > 0)
-
-    const output = []
-
-    for (const stmt of statements) {
-      const start = performance.now()
-      try {
-        const res = await fetch('/api/query', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query: stmt })
-        })
-        const data = await res.json()
-        const elapsed = (performance.now() - start).toFixed(2)
-        output.push({ stmt, data, elapsed, ok: true })
-      } catch (e) {
-        const elapsed = (performance.now() - start).toFixed(2)
-        output.push({ stmt, data: { error: e.message }, elapsed, ok: false })
+      if (!res.ok) {
+        const text = await res.text()
+        setOutput(`Server error: ${res.status} - ${text}`)
+        return
       }
-    }
 
-    setResults(output)
-    setLoading(false)
+      const data = await res.json()
+      setOutput(JSON.stringify(data, null, 2))
+    } catch (err) {
+      setOutput(`Fetch error: ${err.message}`)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <div className="app">
       <header className="header">
         <h1>TinySQLDb</h1>
-        <span className="subtitle">Motor de bases de datos relacional</span>
+        <p className="subtitle">Escribe sentencias SQL y envíalas al servidor</p>
       </header>
 
       <main className="main">
-        <section className="editor-section">
-          <label className="section-label">Editor SQL</label>
-          <textarea
-            className="editor"
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder={PLACEHOLDER}
-            spellCheck={false}
-          />
-          <div className="editor-actions">
-            <button
-              className="btn-run"
-              onClick={runQuery}
-              disabled={loading || !query.trim()}
-            >
-              {loading ? 'Ejecutando...' : '▶ Ejecutar'}
-            </button>
-            <button
-              className="btn-clear"
-              onClick={() => { setQuery(''); setResults([]); setError(null) }}
-            >
-              Limpiar
-            </button>
-          </div>
-        </section>
+        <label className="section-label">Editor</label>
+        <textarea
+          className="editor"
+          value={script}
+          onChange={e => setScript(e.target.value)}
+          rows={12}
+        />
 
-        <section className="results-section">
-          <label className="section-label">Resultados</label>
-          {results.length === 0 && !loading && (
-            <div className="empty">Los resultados aparecerán aquí</div>
-          )}
-          {results.map((r, i) => (
-            <div key={i} className={`result-block ${r.ok ? '' : 'result-error'}`}>
-              <div className="result-meta">
-                <code className="result-stmt">{r.stmt}</code>
-                <span className="result-time">{r.elapsed} ms</span>
-              </div>
-              {r.ok && r.data.columns && r.data.rows ? (
-                <div className="table-wrapper">
-                  <table>
-                    <thead>
-                      <tr>
-                        {r.data.columns.map((col, j) => <th key={j}>{col}</th>)}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {r.data.rows.map((row, j) => (
-                        <tr key={j}>
-                          {row.map((cell, k) => <td key={k}>{cell}</td>)}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="result-message">
-                  {r.data.message || r.data.error || 'OK'}
-                </div>
-              )}
-            </div>
-          ))}
-        </section>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <button onClick={runScript} disabled={loading} className="run-btn">
+            {loading ? 'Enviando...' : 'Ejecutar'}
+          </button>
+        </div>
+
+        <label className="section-label">Salida</label>
+        <pre className="output">{output}</pre>
       </main>
     </div>
   )
