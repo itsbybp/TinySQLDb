@@ -4,36 +4,23 @@
 
 using namespace tinydb;
 
-static std::string trim(const std::string& s) {
-    int start = 0;
-    int end = s.length() - 1;
-
-    while (start <= end && (s[start] == ' ' || s[start] == '\t' || s[start] == '\n' || s[start] == '\r'))
-        start++;
-
-    while (end >= start && (s[end] == ' ' || s[end] == '\t' || s[end] == '\n' || s[end] == '\r'))
-        end--;
-
-    return s.substr(start, end - start + 1);
-}
-
 QueryResult QueryProcessor::execute(const std::string& sql, const std::string& database) {
     QueryResult res;
     auto t0 = std::chrono::high_resolution_clock::now();
 
-    std::string s = trim(sql);
-    std::string up = s;
-    std::transform(up.begin(), up.end(), up.begin(), [](unsigned char c){ return std::toupper(c); });
+    std::string s = sql;
+    s.erase(0, s.find_first_not_of(" \t\r\n"));
+    std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c){ return std::toupper(c); });
 
-    if (up.rfind("SELECT", 0) == 0) {
+    if (s.rfind("SELECT", 0) == 0) {
         res.ok = true;
         res.columns = { "id", "name" };
         res.rows = { { "1", "Alice" }, { "2", "Bob" } };
         res.message = "select stub";
-    } else if (up.rfind("CREATE DATABASE", 0) == 0) {
+    } else if (s.rfind("CREATE DATABASE", 0) == 0) {
         res.ok = true;
         res.message = "create database stub";
-    } else if (up.rfind("SET DATABASE", 0) == 0) {
+    } else if (s.rfind("SET DATABASE", 0) == 0) {
         res.ok = true;
         res.message = "set database validated (stub): " + database;
     } else {

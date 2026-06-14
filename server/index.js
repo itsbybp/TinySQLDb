@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const { load, save } = require('./storage');
+const https = require('https');
+const fs = require('fs');
 
 const app = express();
 app.use(cors());
@@ -22,7 +24,7 @@ app.post('/query', async (req, res) => {
     };
     state.messages.push(entry);
     await save(state);
-    // Minimal processing: echo and confirm receipt
+      // Procesamiento mínimo: solo guarda el mensaje y lo devuelve
     res.json({ ok: true, id: entry.id, received: entry.payload });
   } catch (err) {
     console.error('POST /query error:', err);
@@ -37,10 +39,17 @@ app.get('/messages', (req, res) => {
 const PORT = process.env.PORT || 5000;
 
 init().then(() => {
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server listening on http://localhost:${PORT}`);
+  // Certificados SSL
+  const options = {
+    cert: fs.readFileSync('server/certs/cert.pem'),
+    key: fs.readFileSync('server/certs/key.pem')
+  };
+
+  const server = https.createServer(options, app);
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Servidor escuchando en https://localhost:${PORT}`);
   });
 }).catch(err => {
-  console.error('Failed to initialize server:', err);
+  console.error('No se pudo inicializar el servidor: ', err);
   process.exit(1);
 });

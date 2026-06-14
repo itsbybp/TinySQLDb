@@ -8,6 +8,29 @@ CREATE TABLE Estudiante (ID INTEGER, Nombre VARCHAR(30));
 INSERT INTO Estudiante VALUES(1, "Juan");
 SELECT * FROM Estudiante;`
 
+async function sendQuery(sql, database) {
+  const resp = await fetch("http://localhost:8080/query", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sql, context: { database } }),
+    mode: "cors"
+  });
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  return resp.json();
+}
+
+// Ejemplo de función para manejar el clic del botón "Ejecutar"
+async function onRunClicked() {
+    try {
+        // Reemplazar editorText y currentDatabase con los valores actuales de tu estado
+        const result = await sendQuery(editorText, currentDatabase);
+        setResult(result);    // Actualizar el estado con el resultado para mostrarlo en la tabla
+        setError(null);
+    } catch (err) {
+        setError(err.message || "Network error");
+    }
+}
+
 export default function App() {
   const [script, setScript] = useState(PLACEHOLDER)
   const [output, setOutput] = useState('')
@@ -17,22 +40,10 @@ export default function App() {
     setLoading(true)
     setOutput('')
     try {
-      const res = await fetch('http://localhost:5000/query', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sql: script })
-      })
-
-      if (!res.ok) {
-        const text = await res.text()
-        setOutput(`Server error: ${res.status} - ${text}`)
-        return
-      }
-
-      const data = await res.json()
-      setOutput(JSON.stringify(data, null, 2))
+      const result = await sendQuery(script); // ajusta nombres de estado
+      setOutput(JSON.stringify(result, null, 2)); // actualiza el estado para renderizar la tabla
     } catch (err) {
-      setOutput(`Fetch error: ${err.message}`)
+      setOutput(err.message || "Error de red");
     } finally {
       setLoading(false)
     }
