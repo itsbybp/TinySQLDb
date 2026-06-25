@@ -1,0 +1,17 @@
+client/node_modules/
+client/dist/
+server/build/
+server/data/
+*.o
+*.obj
+*.exe
+*.out
+CMakeFiles/
+CMakeCache.txt
+.env
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+scripts/bench_10000.sql
+scripts/bench_10000_result.json

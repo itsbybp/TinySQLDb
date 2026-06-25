@@ -1,0 +1,10 @@
+#include "BSTIndex.h"
+#include <stdexcept>
+void BSTIndex::insertNode(std::unique_ptr<Node>& n,const std::string& k,long p){ if(!n){n=std::make_unique<Node>(k,p);return;} if(k==n->key) throw std::runtime_error("Duplicate index key: "+k); if(k<n->key)insertNode(n->left,k,p);else insertNode(n->right,k,p); }
+const BSTIndex::Node* BSTIndex::findNode(const Node*n,const std::string&k){while(n){if(k==n->key)return n;n=k<n->key?n->left.get():n->right.get();}return nullptr;}
+std::unique_ptr<BSTIndex::Node> BSTIndex::eraseNode(std::unique_ptr<Node> n,const std::string&k){if(!n)return n;if(k<n->key)n->left=eraseNode(std::move(n->left),k);else if(k>n->key)n->right=eraseNode(std::move(n->right),k);else{if(!n->left)return std::move(n->right);if(!n->right)return std::move(n->left);Node*s=n->right.get();while(s->left)s=s->left.get();n->key=s->key;n->position=s->position;n->right=eraseNode(std::move(n->right),s->key);}return n;}
+void BSTIndex::collect(const Node*n,std::vector<std::pair<std::string,long>>&o){if(!n)return;collect(n->left.get(),o);o.push_back({n->key,n->position});collect(n->right.get(),o);}
+std::unique_ptr<BSTIndex::Node> BSTIndex::buildBalanced(const std::vector<std::pair<std::string,long>>&e,int lo,int hi){if(lo>hi)return nullptr;int mid=lo+(hi-lo)/2;auto n=std::make_unique<Node>(e[mid].first,e[mid].second);n->left=buildBalanced(e,lo,mid-1);n->right=buildBalanced(e,mid+1,hi);return n;}
+void BSTIndex::clear(){root_.reset();} void BSTIndex::insert(const std::string&k,long p){insertNode(root_,k,p);} bool BSTIndex::contains(const std::string&k)const{return findNode(root_.get(),k);} long BSTIndex::find(const std::string&k)const{auto*n=findNode(root_.get(),k);if(!n)throw std::runtime_error("Key not found in BST index: "+k);return n->position;} void BSTIndex::erase(const std::string&k){root_=eraseNode(std::move(root_),k);} std::vector<std::pair<std::string,long>> BSTIndex::entries()const{std::vector<std::pair<std::string,long>>o;collect(root_.get(),o);return o;}
+
+void BSTIndex::buildFromSorted(const std::vector<std::pair<std::string,long>>&e){root_=buildBalanced(e,0,(int)e.size()-1);}

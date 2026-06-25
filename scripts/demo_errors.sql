@@ -1,0 +1,11 @@
+SET DATABASE DemoCompleta;
+CREATE DATABASE DemoCompleta;
+CREATE TABLE Estudiante (ID INTEGER);
+INSERT INTO Estudiante VALUES ("abc", "Luis", 80.0, "2001-01-01 00:00:00");
+INSERT INTO Estudiante VALUES (4, "EsteNombreEsDemasiadoLargoParaTreintaCaracteres", 80.0, "2001-01-01 00:00:00");
+INSERT INTO Estudiante VALUES (4, "Luis", 80.0, "2026-02-30 00:00:00");
+INSERT INTO Estudiante VALUES (2, "Duplicado", 80.0, "2001-01-01 00:00:00");
+SELECT ColumnaInexistente FROM Estudiante;
+SELECT * FROM TablaInexistente;
+CREATE INDEX OtroIndice ON Estudiante(Nombre) OF TYPE BTREE;
+DROP TABLE Estudiante;

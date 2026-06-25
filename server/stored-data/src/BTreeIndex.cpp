@@ -1,0 +1,12 @@
+#include "BTreeIndex.h"
+#include <algorithm>
+#include <stdexcept>
+BTreeIndex::BTreeIndex(){clear();} void BTreeIndex::clear(){root_=std::make_unique<Node>(true);}
+bool BTreeIndex::search(const Node*n,const std::string&k,long&p){size_t i=0;while(i<n->keys.size()&&k>n->keys[i])++i;if(i<n->keys.size()&&k==n->keys[i]){p=n->positions[i];return true;}return !n->leaf&&search(n->children[i].get(),k,p);}
+void BTreeIndex::splitChild(Node*x,int i){Node*y=x->children[i].get();auto z=std::make_unique<Node>(y->leaf);std::string midK=y->keys[T-1];long midP=y->positions[T-1];for(int j=0;j<T-1;++j){z->keys.push_back(y->keys[j+T]);z->positions.push_back(y->positions[j+T]);}if(!y->leaf)for(int j=0;j<T;++j)z->children.push_back(std::move(y->children[j+T]));y->keys.resize(T-1);y->positions.resize(T-1);if(!y->leaf)y->children.resize(T);x->children.insert(x->children.begin()+i+1,std::move(z));x->keys.insert(x->keys.begin()+i,midK);x->positions.insert(x->positions.begin()+i,midP);}
+void BTreeIndex::insertNonFull(Node*x,const std::string&k,long p){int i=(int)x->keys.size()-1;if(x->leaf){x->keys.push_back("");x->positions.push_back(0);while(i>=0&&k<x->keys[i]){x->keys[i+1]=x->keys[i];x->positions[i+1]=x->positions[i];--i;}x->keys[i+1]=k;x->positions[i+1]=p;}else{while(i>=0&&k<x->keys[i])--i;++i;if((int)x->children[i]->keys.size()==2*T-1){splitChild(x,i);if(k>x->keys[i])++i;}insertNonFull(x->children[i].get(),k,p);}}
+void BTreeIndex::insert(const std::string&k,long p){if(contains(k))throw std::runtime_error("Duplicate index key: "+k);if((int)root_->keys.size()==2*T-1){auto s=std::make_unique<Node>(false);s->children.push_back(std::move(root_));splitChild(s.get(),0);insertNonFull(s.get(),k,p);root_=std::move(s);}else insertNonFull(root_.get(),k,p);}
+bool BTreeIndex::contains(const std::string&k)const{long p;return search(root_.get(),k,p);}long BTreeIndex::find(const std::string&k)const{long p;if(!search(root_.get(),k,p))throw std::runtime_error("Key not found in BTree index: "+k);return p;}
+void BTreeIndex::collect(const Node*n,std::vector<std::pair<std::string,long>>&o){for(size_t i=0;i<n->keys.size();++i){if(!n->leaf)collect(n->children[i].get(),o);o.push_back({n->keys[i],n->positions[i]});}if(!n->leaf)collect(n->children.back().get(),o);}
+std::vector<std::pair<std::string,long>> BTreeIndex::entries()const{std::vector<std::pair<std::string,long>>o;collect(root_.get(),o);return o;}
+void BTreeIndex::erase(const std::string&k){auto all=entries();clear();for(auto&[key,pos]:all)if(key!=k)insert(key,pos);}
