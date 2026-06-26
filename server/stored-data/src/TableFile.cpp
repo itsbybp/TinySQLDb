@@ -1,6 +1,7 @@
 #include "TableFile.h"
 #include <fstream>
 #include <stdexcept>
+#include <sstream>
 using namespace std; namespace fs=std::filesystem; static constexpr char SEP='\x1F'; static constexpr unsigned char KEY=0xA7;
 TableFile::TableFile(fs::path p):tableDirectory_(std::move(p)){} fs::path TableFile::schemaPath()const{return tableDirectory_/"schema.bin";} fs::path TableFile::rowsPath()const{return tableDirectory_/"rows.bin";} bool TableFile::exists()const{return fs::exists(schemaPath());}
 void TableFile::crypt(string&d){for(char&c:d)c=static_cast<char>(static_cast<unsigned char>(c)^KEY);}
